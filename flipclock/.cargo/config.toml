@@ -1,0 +1,13 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+runner = "elf2uf2-rs -d"
+rustflags = [
+  # Required for building without standard library
+  "-C", "link-arg=-Tlink.x",
+  "-C", "link-arg=--nmagic",
+]
+
+[build]
+target = "thumbv6m-none-eabi"    # Cortex-M0+ on the RP2040
+
+[env]
+DEFMT_LOG = "debug"

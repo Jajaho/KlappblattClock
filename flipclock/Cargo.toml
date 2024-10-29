@@ -1,0 +1,27 @@
+[package]
+name = "flipclock"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7.1"
+embedded-hal = { version = "0.2.7", features = ["unproven"] }
+panic-halt = "1.0"
+rp-pico = "0.9.0"
+uln2003 = "0.3.0"
+
+# this lets you use cargo fix/clippy/etc
+[[bin]]
+name = "flipclock"
+test = false
+bench = false
+
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false
+incremental = false
+lto = 'fat'
+opt-level = 3
+overflow-checks = false
