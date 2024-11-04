@@ -92,7 +92,7 @@ fn main() -> ! {
 
 
     // run for 100 steps with 5 ms between steps
-    motor.step_for(100, 5).unwrap();
+    //motor.step_for(100, 5).unwrap();
 
     loop {
 
