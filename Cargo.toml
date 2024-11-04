@@ -25,6 +25,12 @@ rp-pico = "0.9"
 
 uln2003 = "0.3.0"
 
+# usb serial crates
+panic-halt = "1.0.0"
+usb-device = "0.3.2"
+usbd-serial = "0.2.2"
+heapless = "0.8.0"
+
 # cargo build/run
 [profile.dev]
 codegen-units = 1
