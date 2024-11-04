@@ -1,3 +1,6 @@
+//! Blinks the LED on a Pico board
+//!
+//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 
@@ -18,12 +21,6 @@ use bsp::hal::{
     sio::Sio,
     watchdog::Watchdog,
 };
-
-use uln2003::{StepperMotor, ULN2003, Direction};
-
-// Constants for the stepper motor
-// Step angle = 0.18º/step
-const STEPS_PER_REVOLUTION: i32 = 2048; // 28BYJ-48 has 4096 steps per revolution
 
 #[entry]
 fn main() -> ! {
@@ -67,44 +64,20 @@ fn main() -> ! {
     // in series with the LED.
     let mut led_pin = pins.led.into_push_pull_output();
 
-    // Create a timer for the ULN2003
-    let timer = bsp::hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
-
-    // Configure the GPIO pins for the ULN2003
-    let mut motor = ULN2003::new(
-        pins.gpio2.into_push_pull_output(), // IN1
-        pins.gpio3.into_push_pull_output(), // IN2
-        pins.gpio4.into_push_pull_output(), // IN3
-        pins.gpio5.into_push_pull_output(), // IN4
-        Some(timer),
-    );
-
-    // Set motor speed to 15 RPM (revolutions per minute)
-    let rpm: f32 = 100.0;
-    
-    // Calculate delay between steps
-    // steps_per_minute = rpm * steps_per_revolution
-    // delay_ms = (60 * 1000) / steps_per_minute
-    let delay_ms = ((60.0 * 1000.0) / (rpm * STEPS_PER_REVOLUTION as f32)) as u32;
-
-    // Set rotation direction
-    motor.set_direction(Direction::Normal);
-
-
-    // run for 100 steps with 5 ms between steps
-    motor.step_for(100, 5).unwrap();
-
     loop {
-
-        // Step the motor with calculated delay
-        match motor.step() {
-            Ok(_) => {
-                delay.delay_ms(5);
-            }
-            Err(_) => {
-                // Handle error - in this case we just continue
-                continue;
-            }
-        }
+        info!("on!");
+        led_pin.set_high().unwrap();
+        delay.delay_ms(200);
+        info!("off!");
+        led_pin.set_low().unwrap();
+        delay.delay_ms(500);
+        info!("on!");
+        led_pin.set_high().unwrap();
+        delay.delay_ms(2000);
+        info!("off!");
+        led_pin.set_low().unwrap();
+        delay.delay_ms(5000);
     }
 }
+
+// End of file
