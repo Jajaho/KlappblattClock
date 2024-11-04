@@ -1,29 +1,39 @@
+//! Blinks the LED on a Pico board
+//!
+//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 
-use panic_halt as _;
-use rp_pico::{
-    hal::{self, Clock},
-    pac,
-    entry,
-};
-use uln2003::{StepperMotor, ULN2003, Direction};
+use bsp::entry;
+use defmt::*;
+use defmt_rtt as _;
+use embedded_hal::digital::OutputPin;
+use panic_probe as _;
 
-// Constants for the stepper motor
-const STEPS_PER_REVOLUTION: i32 = 4096; // 28BYJ-48 has 4096 steps per revolution
+// Provide an alias for our BSP so we can switch targets quickly.
+// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
+use rp_pico as bsp;
+// use sparkfun_pro_micro_rp2040 as bsp;
+
+use bsp::hal::{
+    clocks::{init_clocks_and_plls, Clock},
+    pac,
+    sio::Sio,
+    watchdog::Watchdog,
+};
 
 #[entry]
 fn main() -> ! {
-    // Grab our singleton objects
+    info!("Program start");
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
+    let mut watchdog = Watchdog::new(pac.WATCHDOG);
+    let sio = Sio::new(pac.SIO);
 
-    // Set up the watchdog driver - needed by the clock setup code
-    let mut watchdog = hal::Watchdog::new(pac.WATCHDOG);
-
-    // Configure the clocks
-    let clocks = hal::clocks::init_clocks_and_plls(
-        rp_pico::XOSC_CRYSTAL_FREQ,
+    // External high-speed crystal on the pico board is 12Mhz
+    let external_xtal_freq_hz = 12_000_000u32;
+    let clocks = init_clocks_and_plls(
+        external_xtal_freq_hz,
         pac.XOSC,
         pac.CLOCKS,
         pac.PLL_SYS,
@@ -34,54 +44,34 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
-    // Create a delay abstraction based on SysTick
-    let mut delay = cortex_m::delay::Delay::new(
-        core.SYST, 
-        clocks.system_clock.freq().to_Hz()
-    );
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
-    // Set up the GPIO pins
-    let sio = hal::Sio::new(pac.SIO);
-    let pins = rp_pico::Pins::new(
+    let pins = bsp::Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
 
-    // Create a timer for the ULN2003
-    let timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
-
-    // Configure the GPIO pins for the ULN2003
-    let mut motor = ULN2003::new(
-        pins.gpio2.into_push_pull_output(), // IN1
-        pins.gpio3.into_push_pull_output(), // IN2
-        pins.gpio4.into_push_pull_output(), // IN3
-        pins.gpio5.into_push_pull_output(), // IN4
-        Some(timer),
-    );
-
-    // Set motor speed to 15 RPM (revolutions per minute)
-    let rpm: f32 = 15.0;
-    
-    // Calculate delay between steps
-    // steps_per_minute = rpm * steps_per_revolution
-    // delay_ms = (60 * 1000) / steps_per_minute
-    let delay_ms = ((60.0 * 1000.0) / (rpm * STEPS_PER_REVOLUTION as f32)) as u32;
-
-    // Set rotation direction
-    motor.set_direction(Direction::Normal);
+    // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
+    // on-board LED, it might need to be changed.
+    //
+    // Notably, on the Pico W, the LED is not connected to any of the RP2040 GPIOs but to the cyw43 module instead.
+    // One way to do that is by using [embassy](https://github.com/embassy-rs/embassy/blob/main/examples/rp/src/bin/wifi_blinky.rs)
+    //
+    // If you have a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
+    // LED to one of the GPIO pins, and reference that pin here. Don't forget adding an appropriate resistor
+    // in series with the LED.
+    let mut led_pin = pins.led.into_push_pull_output();
 
     loop {
-        // Step the motor with calculated delay
-        match motor.step() {
-            Ok(_) => {
-                delay.delay_ms(delay_ms);
-            }
-            Err(_) => {
-                // Handle error - in this case we just continue
-                continue;
-            }
-        }
+        info!("on!");
+        led_pin.set_high().unwrap();
+        delay.delay_ms(500);
+        info!("off!");
+        led_pin.set_low().unwrap();
+        delay.delay_ms(500);
     }
 }
+
+// End of file
