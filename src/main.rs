@@ -88,7 +88,7 @@ fn main() -> ! {
     let delay_ms = ((60.0 * 1000.0) / (rpm * STEPS_PER_REVOLUTION as f32)) as u32;
 
     // Set rotation direction
-    motor.set_direction(Direction::Normal);
+    motor.set_direction(Direction::Reverse);
 
 
     // run for 100 steps with 5 ms between steps
@@ -99,7 +99,8 @@ fn main() -> ! {
         // Step the motor with calculated delay
         match motor.step() {
             Ok(_) => {
-                delay.delay_ms(5);
+                // min delay tested: 1000 us
+                delay.delay_us(3000);
             }
             Err(_) => {
                 // Handle error - in this case we just continue
