@@ -21,9 +21,12 @@ use bsp::hal::{
 
 use uln2003::{StepperMotor, ULN2003, Direction};
 
-// Constants for the stepper motor
+// Constants for the stepper motor and gearing
 // Step angle = 0.18º/step
-const STEPS_PER_REVOLUTION: i32 = 2048; // 28BYJ-48 has 4096 steps per revolution
+// 28BYJ-48 has 2048 steps per revolution but due to half stepping the total steps per revolution is doubled.
+const STEPS_PER_REVOLUTION: i32 = 2048*2; 
+// For a full revolution of the minute hand the motor has to rotate "GEAR_RATIO" times.
+const GEAR_RATIO: f32 = 1.0/1.11;
 
 #[entry]
 fn main() -> ! {
@@ -92,20 +95,20 @@ fn main() -> ! {
 
 
     // run for 100 steps with 5 ms between steps
-    //motor.step_for(100, 5).unwrap();
+    motor.step_for(10*STEPS_PER_REVOLUTION, 5).unwrap();
 
     loop {
-
-        // Step the motor with calculated delay
-        match motor.step() {
-            Ok(_) => {
-                // min delay tested: 1000 us
-                delay.delay_us(3000);
-            }
-            Err(_) => {
-                // Handle error - in this case we just continue
-                continue;
-            }
-        }
+        delay.delay_us(3000);
+        // // Step the motor with calculated delay
+        // match motor.step() {
+        //     Ok(_) => {
+        //         // min delay tested: 1000 us
+        //         delay.delay_us(3000);   // 11.047 s per minute-plate rotation
+        //     }
+        //     Err(_) => {
+        //         // Handle error - in this case we just continue
+        //         continue;
+        //     }
+        // }
     }
 }
